@@ -1,0 +1,13 @@
+LICENSE
+README.md
+docker-compose.yml
+setup.bat
+
+.env
+
+img/
+.vscode/
+
+.gitignore
+
+__pycache__/

@@ -76,4 +76,4 @@ with DAG(
         currency(check_tables(table_name="dim_currency")),
         category(check_tables(table_name="dim_transaction_categories")),
         merchant(check_tables(table_name="dim_merchants")),
-    ] >> generate_account_data() >> generate_account_data() >> generate_account_data()
+    ] >> generate_customer_data() >> generate_account_data() >> generate_transaction_data()

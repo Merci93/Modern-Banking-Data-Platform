@@ -1,0 +1,7 @@
+{
+    "merchants": [
+        "Amazon", "Uber", "Netflix", "Walmart", "Starbucks", "Apple",
+        "Google", "Microsoft", "Airbnb", "Spotify", "Zara", "H&M", "Costco",
+        "Target", "Best Buy"
+    ]
+}

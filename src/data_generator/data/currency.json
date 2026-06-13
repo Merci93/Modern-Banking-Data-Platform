@@ -1,0 +1,25 @@
+{
+    "currencies": [
+        ["USD", "US Dollar"],
+        ["EUR", "Euro"],
+        ["GBP", "British Pound"],
+        ["JPY", "Japanese Yen"],
+        ["PLN", "Polish Zloty"],
+        ["NGN", "Nigerian Naira"],
+        ["CAD", "Canadian Dollar"],
+        ["AUD", "Australian Dollar"],
+        ["CHF", "Swiss Franc"],
+        ["CNY", "Chinese Yuan"],
+        ["INR", "Indian Rupee"],
+        ["BRL", "Brazilian Real"],
+        ["ZAR", "South African Rand"],
+        ["RUB", "Russian Ruble"],
+        ["MXN", "Mexican Peso"],
+        ["TRY", "Turkish Lira"],
+        ["KRW", "South Korean Won"],
+        ["SEK", "Swedish Krona"],
+        ["NZD", "New Zealand Dollar"],
+        ["SGD", "Singapore Dollar"],
+        ["HKD", "Hong Kong Dollar"]
+    ]
+}

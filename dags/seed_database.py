@@ -16,7 +16,7 @@ from data_generator.seeds import (
 DEFAULT_ARGS = {
     "owner": "Database Seeder",
     "retries": 2,
-    "retry_delay": timedelta(minutes=5),
+    "retry_delay": timedelta(minutes=1),
 }
 
 
@@ -47,19 +47,19 @@ def merchant(is_seeded: bool) -> None:
 @task
 def generate_customer_data() -> None:
     """Task to generate fake customer data."""
-    dim_customer_data_generator.customer_data()
+    dim_customer_data_generator.add_customers_data()
 
 
 @task
 def generate_account_data() -> None:
     """Task to generate fake account data."""
-    dim_accounts_data_generator.account_data()
+    dim_accounts_data_generator.add_account_data()
 
 
 @task
 def generate_transaction_data() -> None:
     """Task to generate fake transaction data."""
-    fact_transactions_data_generator.transaction_data()
+    fact_transactions_data_generator.add_transactions_data()
 
 
 with DAG(
@@ -76,4 +76,4 @@ with DAG(
         currency(check_tables(table_name="dim_currency")),
         category(check_tables(table_name="dim_transaction_categories")),
         merchant(check_tables(table_name="dim_merchants")),
-    ] >> generate_account_data() >> generate_account_data() >> generate_account_data()
+    ] >> generate_customer_data() >> generate_account_data() >> generate_transaction_data()

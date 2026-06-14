@@ -3,7 +3,7 @@ README.md
 docker-compose.yml
 setup.bat
 
-.env
+.venv
 
 img/
 .vscode/
@@ -11,3 +11,4 @@ img/
 .gitignore
 
 __pycache__/
+logs/

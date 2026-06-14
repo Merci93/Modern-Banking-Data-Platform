@@ -21,6 +21,7 @@ docs/
 .vscode/
 
 # Draw files
+img/.*
 *.drawio
 
 # Environment files
@@ -32,3 +33,6 @@ venv/
 storage/
 logs/
 plugins/
+
+# Others
+

@@ -4,20 +4,18 @@ from typing import Any, List, Tuple
 from psycopg2 import sql
 from psycopg2.extras import execute_values
 
-from utils import (
-    db_connection,
-    log_handler,
-)
+from utils.db_connection import db_connect
+from utils.log_handler import get_logger
 
 
-logger = log_handler.get_logger(__name__)
+logger = get_logger(__name__)
 
 
 def add_data_to_database_table(
-    data: List[Tuple[Any]],
+    data: List[Tuple[Any, ...]],
     table_name: str,
-    columns: Tuple[str],
-    on_conflict: str = "",
+    columns: Tuple[str, ...],
+    on_conflict: str | Tuple[str, ...] | None = None,
 ) -> None:
     """
     Fuction to handle data insertion into the database table.
@@ -30,22 +28,35 @@ def add_data_to_database_table(
     cur = None
 
     try:
-        placeholders = sql.SQL(", ").join(sql.SQL("%s") for _ in columns)
+        print(data)
+        placeholder = sql.SQL("%s")
+        column_values = sql.SQL(", ").join(sql.Identifier(col) for col in columns)
 
         query = sql.SQL(
             """
             INSERT INTO {table} ({columns})
-            VALUES ({placeholders})
-            ON CONFLICT {conflict} DO NOTHING
+            VALUES {placeholder}
             """
         ).format(
             table=sql.Identifier(table_name),
-            columns=sql.SQL(", ").join(sql.Identifier(col) for col in columns),
-            placeholders=placeholders,
-            conflict=sql.Identifier(on_conflict)
+            columns=column_values,
+            placeholder=placeholder,
         )
 
-        conn, cur = db_connection.db_connect()
+        if on_conflict:
+            if isinstance(on_conflict, str):
+                on_conflict = (on_conflict,)
+
+            conflict_cols = sql.SQL(", ").join(
+                sql.Identifier(col)
+                for col in on_conflict
+            )
+
+            query += sql.SQL(
+                " ON CONFLICT ({}) DO NOTHING"
+            ).format(conflict_cols)
+
+        conn, cur = db_connect()
 
         execute_values(cur, query, data)
 
@@ -53,12 +64,17 @@ def add_data_to_database_table(
 
         logger.info("Data insert into %s completed.", table_name)
 
-    except Exception as e:
-        logger.error("Failed to insert data into %s. Error Message: %s", table_name, str(e))
-        conn.rollback()
+    except Exception:
+        logger.error("Failed to insert data into %s", table_name)
+        if conn:
+            conn.rollback()
         raise
 
     finally:
-        cur.close()
-        conn.close()
+        if cur:
+            cur.close()
+
+        if conn:
+            conn.close()
+
         logger.info("Connection closed.")

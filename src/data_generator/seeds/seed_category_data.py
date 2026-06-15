@@ -1,9 +1,9 @@
 """Module to seed category reference data into the dim_transaction_categories table."""
 from pathlib import Path
 
-from data_generator.send_data_to_database_table import add_data_to_database_table
 from utils.helpers import read_reference_data
 from utils.log_handler import get_logger
+from utils.send_data_to_database_table import add_data_to_database_table
 
 
 logger = get_logger(__name__)

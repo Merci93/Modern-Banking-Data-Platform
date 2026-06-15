@@ -3,9 +3,9 @@ import random
 from pathlib import Path
 from typing import List, Tuple
 
-from data_generator.send_data_to_database_table import add_data_to_database_table
 from utils.helpers import read_reference_data
 from utils.log_handler import get_logger
+from utils.send_data_to_database_table import add_data_to_database_table
 
 
 logger = get_logger(__name__)

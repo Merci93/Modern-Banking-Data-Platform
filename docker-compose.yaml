@@ -160,6 +160,22 @@ services:
       start_period: 30s
     networks:
       - bank-network
+  
+  cdc-consumer:
+    image: cdc-consumer:custom
+    container_name: cdc-consumer
+    env_file:
+      - .env
+    depends_on:
+      kafka:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      debezium-init:
+        condition: service_completed_successfully
+    networks:
+      - bank-network
+    restart: unless-stopped
 
   airflow-postgres:
     image: postgres:17  # postgres:15

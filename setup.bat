@@ -3,7 +3,7 @@ ECHO Checking existing Docker images ...
 
 :: Set image names
 SET AIRFLOW_IMAGE=banking-airflow:custom
-SET DEBEZIUM_INIT=debezium-init:custom
+SET DEBEZIUM_INIT=debezium-connector:custom
 SET CDC_CONSUMER=cdc-consumer:custom
 
 :: Check if AIRFLOW_IMAGE already exists

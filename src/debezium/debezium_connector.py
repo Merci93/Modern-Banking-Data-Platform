@@ -27,7 +27,13 @@ CONNECTOR_CONFIG = {
         "database.password": os.getenv("POSTGRES_PASSWORD"),
         "database.dbname": os.getenv("POSTGRES_DB"),
         "topic.prefix": "banking_server",
-        "table.include.list": "public.dim_customers,public.dim_accounts,public.fact_transactions",
+        "table.include.list":
+            "public.dim_customers,"
+            "public.dim_accounts,"
+            "public.fact_transactions,"
+            "public.dim_currency,"
+            "public.dim_merchants,"
+            "public.dim_transaction_categories",
         "slot.name": "banking_slot",
         "snapshot.mode": "initial",
         "publication.autocreate.mode": "filtered",

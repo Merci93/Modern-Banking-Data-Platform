@@ -9,7 +9,7 @@ from utils.send_data_to_database_table import add_data_to_database_table
 logger = get_logger(__name__)
 
 TABLE_NAME = "dim_transaction_categories"
-COLUMNS = ("category_name")
+COLUMNS = ("category_name",)
 BASE_DIR = Path(__file__).resolve().parent.parent
 CATEGORY_FILE_PATH = BASE_DIR / "data" / "transaction_categories.json"
 

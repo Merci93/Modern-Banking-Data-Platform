@@ -41,7 +41,7 @@ IF "%BUILD_AIRFLOW_IMAGE%"=="true" (
 
 IF "%BUILD_DEBEZIUM_INIT%"=="true" (
     ECHO [BUILD] Building %DEBEZIUM_INIT% image ...
-    docker build -t %DEBEZIUM_INIT% -f dockerfile-debezium-init.dockerfile .
+    docker build -t %DEBEZIUM_INIT% -f dockerfile-debezium-connector.dockerfile .
     ECHO [INFO] %DEBEZIUM_INIT% image build completed.
 )
 

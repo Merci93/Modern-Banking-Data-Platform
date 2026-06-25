@@ -43,20 +43,14 @@ CONNECTOR_CONFIG = {
 }
 
 
-def wait_for_debezium(
-    timeout: int = 120,
-    interval: int = 10
-) -> None:
+def wait_for_debezium() -> None:
     """
     Wait for Debezium Connect REST API to become available.
     """
 
     logger.info("Waiting for Debezium to become available...")
 
-    start_time = time.time()
-
-    while time.time() - start_time < timeout:
-        time.sleep(interval)
+    while True:
         try:
             response = requests.get(f"{DEBEZIUM_URL}/connectors", timeout=10)
 
@@ -70,9 +64,7 @@ def wait_for_debezium(
             logger.warning("Unable to reach Debezium. Msg: %s", str(e))
             pass
 
-        time.sleep(interval)
-
-    raise TimeoutError("Debezium did not become ready in time.")
+        time.sleep(2)
 
 
 def connector_exists() -> bool:

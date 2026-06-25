@@ -8,6 +8,6 @@ RUN pip install --no-cache-dir \
     boto3 \
     pandas \
     kafka-python \
-    fastparquet
+    pyarrow
 
 CMD ["python", "-m", "src.consumer.consumer"]

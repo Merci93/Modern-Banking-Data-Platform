@@ -2,7 +2,6 @@
 import json
 import logging
 import os
-import time
 
 import requests
 
@@ -63,8 +62,6 @@ def wait_for_debezium() -> None:
         except requests.RequestException as e:
             logger.warning("Unable to reach Debezium. Msg: %s", str(e))
             pass
-
-        time.sleep(2)
 
 
 def connector_exists() -> bool:

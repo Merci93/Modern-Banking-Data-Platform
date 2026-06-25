@@ -119,9 +119,9 @@ services:
     networks:
       - bank-network
   
-  debezium-init:
-    image: debezium-init:custom
-    container_name: debezium-init
+  debezium-connector:
+    image: debezium-connector:custom
+    container_name: debezium-connector
     env_file:
       - .env
     depends_on:

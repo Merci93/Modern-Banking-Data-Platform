@@ -2,7 +2,7 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-COPY src/consumer ./src/consumer
+COPY cdc/consumer ./cdc/consumer
 
 RUN pip install --no-cache-dir \
     boto3 \
@@ -10,4 +10,4 @@ RUN pip install --no-cache-dir \
     kafka-python \
     pyarrow
 
-CMD ["python", "-m", "src.consumer.consumer"]
+CMD ["python", "-m", "cdc.consumer.consumer"]

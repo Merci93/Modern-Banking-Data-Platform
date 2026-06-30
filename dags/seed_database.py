@@ -3,9 +3,9 @@ from airflow import DAG
 from airflow.decorators import task
 from datetime import datetime, timedelta
 
-from data_generator.dims import dim_accounts_data_generator, dim_customer_data_generator
-from data_generator.facts import fact_transactions_data_generator
-from data_generator.seeds import (
+from dims import dim_accounts_data_generator, dim_customer_data_generator
+from facts import fact_transactions_data_generator
+from seeds import (
     check_seeded_table,
     seed_category_data,
     seed_currency_data,

@@ -2,8 +2,8 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-COPY src/debezium/debezium_connector.py .
+COPY cdc/debezium ./cdc/debezium
 
-RUN pip install --no-cache-dir requests python-dotenv
+RUN pip install --no-cache-dir requests
 
-CMD ["python", "debezium_connector.py"]
+CMD ["python", "-m", "cdc.debezium.debezium_connector"]

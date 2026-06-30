@@ -5,7 +5,7 @@ x-airflow-common:
     - ${ENV_FILE_PATH:-.env}
   environment:
     &airflow-common-env
-    PYTHONPATH: /opt/airflow/src
+    PYTHONPATH: /opt/airflow/data-generator
     # AIRFLOW__API_AUTH__JWT_SECRET: ${AIRFLOW__API_AUTH__JWT_SECRET}
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_POSTGRES_USER}:${AIRFLOW_POSTGRES_PASSWORD}@airflow-postgres:5432/${AIRFLOW_POSTGRES_DB}
     # AIRFLOW_CORE__AUTH_MANAGER: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
@@ -18,7 +18,7 @@ x-airflow-common:
     - ./dags:/opt/airflow/dags
     - ./logs:/opt/airflow/logs
     - ./plugins:/opt/airflow/plugins
-    - ./src:/opt/airflow/src
+    - ./data-generator:/opt/airflow/data-generator
     # - ./banking_dbt:/opt/airflow/banking_dbt
     # - ./banking_dbt/.dbt:/home/airflow/.dbt
   user: "${AIRFLOW_UID:-50000}:0"
@@ -44,7 +44,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - ./storage/postgres/data:/var/lib/postgresql/data
-      - ./src/sql-ddl:/docker-entrypoint-initdb.d
+      - ./data-generator/sql-ddl:/docker-entrypoint-initdb.d
     ports:
       - "5432:5432"
     command: >

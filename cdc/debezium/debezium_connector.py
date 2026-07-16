@@ -102,7 +102,7 @@ def update_connector() -> None:
     Update existing connector configuration.
     """
     response = requests.put(
-        f"{DEBEZIUM_URL}/connectors/{CONNECTOR_CONFIG["name"]}/config",
+        f"{DEBEZIUM_URL}/connectors/{CONNECTOR_CONFIG['name']}/config",
         headers={"Content-Type": "application/json"},
         data=json.dumps(CONNECTOR_CONFIG),
         timeout=30

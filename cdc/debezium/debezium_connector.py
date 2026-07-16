@@ -69,7 +69,7 @@ def connector_exists() -> bool:
     Check whether connector already exists.
     """
     response = requests.get(
-        f"{DEBEZIUM_URL}/connectors/{CONNECTOR_CONFIG["name"]}",
+        f"{DEBEZIUM_URL}/connectors/{CONNECTOR_CONFIG['name']}",
         timeout=10
     )
 

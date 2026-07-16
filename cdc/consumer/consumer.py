@@ -151,7 +151,7 @@ def write_to_minio(
 
     now = datetime.now(timezone.utc)
 
-    local_file = f"{table_name}_{now.strftime("%Y%m%d%H%M%S")}.parquet"
+    local_file = f"{table_name}_{now.strftime('%Y%m%d%H%M%S')}.parquet"
 
     df.to_parquet(local_file, engine="pyarrow", index=False,)
 

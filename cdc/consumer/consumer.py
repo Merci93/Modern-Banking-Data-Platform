@@ -151,17 +151,11 @@ def write_to_minio(
 
     now = datetime.now(timezone.utc)
 
-    local_file = f"{table_name}_{now.strftime("%Y%m%d%H%M%S")}.parquet"
+    local_file = f"{table_name}_{now.strftime('%Y%m%d%H%M%S')}.parquet"
 
     df.to_parquet(local_file, engine="pyarrow", index=False,)
 
-    s3_key = (
-        f"raw/{table_name}/"
-        f"year={now.year}/"
-        f"month={now.month:02d}/"
-        f"day={now.day:02d}/"
-        f"{local_file}"
-    )
+    s3_key = (f"raw/{table_name}/{local_file}")
 
     s3_client.upload_file(
         local_file,

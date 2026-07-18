@@ -11,6 +11,8 @@ from airflow import DAG
 from airflow.decorators import task
 from databricks.sdk import WorkspaceClient
 
+from utils.db_connection import db_connect
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -67,11 +69,80 @@ def databricks_client() -> WorkspaceClient:
     )
 
 
+def fetch_table_last_checkpoint(table: str) -> datetime | None:
+    """Fetch the last checkpoint of the referenced table from the database."""
+
+    conn, cur = db_connect()
+
+    try:
+        cur.execute(
+            """
+            SELECT object_key
+            FROM ingestion_checkpoint
+            WHERE table_name = %s
+            """,
+            (table,)
+        )
+
+        row = cur.fetchone()
+
+        if row:
+            return row[0]
+
+        return None
+
+    except Exception as e:
+        logger.error("Failed fetching checkpoint for %s. Error: %s", table, str(e))
+        raise
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+def update_table_checkpoint(table: str, object_key: str) -> None:
+    """Upsert the last checkpoint for referenced table."""
+
+    conn, cur = db_connect()
+
+    try:
+        cur.execute(
+            """
+            INSERT INTO ingestion_checkpoint (
+                table_name,
+                object_key
+            )
+            VALUES (%s, %s)
+
+            ON CONFLICT (table_name)
+            DO UPDATE
+            SET
+                object_key = EXCLUDED.object_key,
+                updated_at = NOW()
+            """,
+            (
+                table,
+                object_key,
+            )
+        )
+
+        conn.commit()
+
+    except Exception as e:
+        logger.error("Checkpoint update failed for %s. Error: %s", table, str(e))
+        raise
+
+    finally:
+        cur.close()
+        conn.close()
+
+
 # Extract
 @task
 def download_from_minio() -> dict[str, list[str]]:
     """Download files from MinIO."""
-    logger.info("Downloading files ...")
+
+    logger.info("Downloading files from MinIO...")
 
     s3 = minio_client()
 
@@ -81,26 +152,48 @@ def download_from_minio() -> dict[str, list[str]]:
 
         downloaded_files[table] = []
 
-        response = s3.list_objects_v2(
-            Bucket=MINIO_BUCKET,
-            Prefix=f"raw/{table}/"
-        )
+        checkpoint = fetch_table_last_checkpoint(table)
 
-        for obj in response.get("Contents", []):
-            key = obj["Key"]
+        paginator = s3.get_paginator("list_objects_v2")
 
-            local_directory = os.path.join(
-                BASE_DIRECTORY,
-                os.path.dirname(key)
+        pagination_args = {
+            "Bucket": MINIO_BUCKET,
+            "Prefix": f"raw/{table}/",
+        }
+
+        if checkpoint:
+            pagination_args["StartAfter"] = checkpoint
+
+        latest_key = None
+
+        for page in paginator.paginate(**pagination_args):
+
+            objects = page.get("Contents", [])
+
+            for obj in objects:
+
+                key = obj["Key"]
+
+                local_directory = os.path.join(
+                    BASE_DIRECTORY,
+                    os.path.dirname(key)
+                )
+
+                os.makedirs(local_directory, exist_ok=True)
+
+                local_path = os.path.join(local_directory, os.path.basename(key))
+
+                s3.download_file(MINIO_BUCKET, key, local_path)
+
+                downloaded_files[table].append(local_path)
+
+                latest_key = key
+
+        if latest_key:
+            update_table_checkpoint(
+                table=table,
+                object_key=latest_key,
             )
-
-            os.makedirs(local_directory, exist_ok=True)
-
-            local_path = os.path.join(local_directory, os.path.basename(key))
-
-            s3.download_file(MINIO_BUCKET, key, local_path)
-
-            downloaded_files[table].append(local_path)
 
     total_files = sum(len(files) for files in downloaded_files.values())
 

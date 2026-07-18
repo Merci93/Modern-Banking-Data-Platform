@@ -1,11 +1,7 @@
-# alembic>=1.13
-boto3
+apache-airflow-providers-databricks
 dbt-databricks
 faker
-fastparquet
 kafka-python
 pandas
 psycopg2-binary
-python-dotenv
 pyyaml
-# sqlalchemy>=2.0

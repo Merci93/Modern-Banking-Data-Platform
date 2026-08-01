@@ -2,13 +2,18 @@ LICENSE
 README.md
 docker-compose.yml
 setup.bat
+*.dockerfile
 
 .venv
+.venv1
 
-img/
+image/
 .vscode/
 
 .gitignore
 
 __pycache__/
 logs/
+plugins/
+storage/
+*.dockerfile

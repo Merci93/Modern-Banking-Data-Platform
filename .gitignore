@@ -26,7 +26,7 @@ img/.*
 
 # Environment files
 .venv/
-venv/
+.venv1/
 .env
 
 # Storage files
@@ -35,4 +35,4 @@ logs/
 plugins/
 
 # Others
-
+*.bkp

@@ -200,10 +200,6 @@ def download_from_minio() -> dict[str, Any]:
 
         if latest_key:
             checkpoints[table] = latest_key
-            # update_table_checkpoint(
-            #     table=table,
-            #     object_key=latest_key,
-            # )
 
     total_files = sum(len(files) for files in downloaded_files.values())
 

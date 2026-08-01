@@ -2,13 +2,17 @@
 Dag to copy generated files from MinIO to Databricks volume and
 load parquet files into Databricks Bronze Delta tables.
 """
+import json
 import logging
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from io import BytesIO
+from typing import Any
 
 import boto3
 from airflow import DAG
 from airflow.decorators import task
+from airflow.providers.databricks.operators.databricks import DatabricksRunNowOperator
 from databricks.sdk import WorkspaceClient
 
 from utils.db_connection import db_connect
@@ -41,16 +45,17 @@ TABLES = [
 DATABRICKS_HOST = os.getenv("DATABRICKS_HOST")
 DATABRICKS_TOKEN = os.getenv("DATABRICKS_TOKEN")
 DATABRICKS_VOLUME_PATH = os.getenv("VOLUME_PATH")
+DATABRICKS_JOB_ID = os.getenv("JOB_ID")
 
 # DAG default arguments
 DEFAULT_ARGS = {
     "owner": "airflow",
     "retries": 2,
-    "retry_delay": timedelta(minutes=2),
+    "retry_delay": timedelta(seconds=15),
 }
 
 
-# Clients
+# MinIO client connection
 def minio_client() -> boto3.client:
     """Create MinIO client connection."""
     return boto3.client(
@@ -61,6 +66,7 @@ def minio_client() -> boto3.client:
     )
 
 
+# Databricks client connection
 def databricks_client() -> WorkspaceClient:
     """Create databricks client connection."""
     return WorkspaceClient(
@@ -69,6 +75,7 @@ def databricks_client() -> WorkspaceClient:
     )
 
 
+# Get checkpointing data
 def fetch_table_last_checkpoint(table: str) -> datetime | None:
     """Fetch the last checkpoint of the referenced table from the database."""
 
@@ -100,6 +107,7 @@ def fetch_table_last_checkpoint(table: str) -> datetime | None:
         conn.close()
 
 
+# Update checkpointing data
 def update_table_checkpoint(table: str, object_key: str) -> None:
     """Upsert the last checkpoint for referenced table."""
 
@@ -139,7 +147,7 @@ def update_table_checkpoint(table: str, object_key: str) -> None:
 
 # Extract
 @task
-def download_from_minio() -> dict[str, list[str]]:
+def download_from_minio() -> dict[str, Any]:
     """Download files from MinIO."""
 
     logger.info("Downloading files from MinIO...")
@@ -147,6 +155,7 @@ def download_from_minio() -> dict[str, list[str]]:
     s3 = minio_client()
 
     downloaded_files: dict[str, list[str]] = {}
+    checkpoints: dict[str, str] = {}
 
     for table in TABLES:
 
@@ -190,32 +199,42 @@ def download_from_minio() -> dict[str, list[str]]:
                 latest_key = key
 
         if latest_key:
-            update_table_checkpoint(
-                table=table,
-                object_key=latest_key,
-            )
+            checkpoints[table] = latest_key
+            # update_table_checkpoint(
+            #     table=table,
+            #     object_key=latest_key,
+            # )
 
     total_files = sum(len(files) for files in downloaded_files.values())
 
     logger.info("%s files downloaded successfully.", total_files)
 
-    return downloaded_files
+    return {
+        "files": downloaded_files,
+        "checkpoints": checkpoints,
+    }
 
 
-# Load to Databricks Volume
+# Upload to Databricks Volume
 @task
-def upload_to_databricks(files: dict[str, list[str]]) -> None:
-    """Uploade downloaded files into databricks."""
+def upload_to_databricks(downloaded_files: dict[str, Any]) -> dict[str, list[str]]:
+    """Upload downloaded files into Databricks."""
+
+    files = downloaded_files["files"]
 
     if not files:
         logger.info("No new files to upload.")
-        return
+        return {}
 
     db = databricks_client()
 
+    uploaded_files: dict[str, list[str]] = {}
+
     counter = 0
 
-    for _, table_files in files.items():
+    for table, table_files in files.items():
+
+        uploaded_files[table] = []
 
         for file in table_files:
 
@@ -230,26 +249,112 @@ def upload_to_databricks(files: dict[str, list[str]]) -> None:
                 db.files.upload(target, f, overwrite=True)
 
             counter += 1
+            uploaded_files[table].append(target)
 
     logger.info("Uploaded %s files successfully.", counter)
 
+    return uploaded_files
 
-# Trigger Bronze Load
+
+# Create ingestion manifest file
 @task
-def trigger_bronze_load():
-    """trigger ingestion pipeline from v=raw to bronze."""
-    pass
+def create_manifests(uploaded_files: dict[str, list[str]]) -> None:
+    """Create ingestion manifest file."""
+
+    time_stamp = datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')
+
+    manifest_path = (
+        f"{DATABRICKS_VOLUME_PATH}raw/"
+        f"manifests/history/"
+        f"manifest_{time_stamp}.json"
+    )
+
+    manifest = {
+        "run_id": time_stamp,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "started_at": "",
+        "completed_at": "",
+        "error": None,
+        "status": "READY",
+        "files": uploaded_files,
+    }
+
+    latest_path = (
+        f"{DATABRICKS_VOLUME_PATH}raw/"
+        f"manifests/latest.json"
+    )
+
+    db = databricks_client()
+
+    # Write historical manifest
+    db.files.upload(
+        manifest_path,
+        BytesIO(
+            json.dumps(
+                manifest,
+                indent=2
+            ).encode("utf-8")
+        ),
+        overwrite=True,
+    )
+
+    # Update latest pointer file
+    pointer = {
+        "manifest": manifest_path,
+        "created_at": manifest["created_at"],
+        "status": "READY",
+    }
+
+    db.files.upload(
+        latest_path,
+        BytesIO(
+            json.dumps(
+                pointer,
+                indent=2
+            ).encode("utf-8")
+        ),
+        overwrite=True,
+    )
+
+    logger.info("Manifest file created succesfully.")
+
+
+# Update checkpoint
+@task
+def update_checkpoint(downloaded_files: dict) -> None:
+
+    checkpoints = downloaded_files["checkpoints"]
+
+    for table, key in checkpoints.items():
+
+        update_table_checkpoint(
+            table,
+            key,
+        )
 
 
 with DAG(
     dag_id="minio_to_databricks_volume",
     description="Downloads files from MinIO and uploads into Databricks volume.",
     default_args=DEFAULT_ARGS,
-    schedule="*/5 * * * *",
+    # schedule="*/5 * * * *",
+    schedule=None,
     start_date=datetime(2026, 7, 1),
     catchup=False,
     tags=["MinIO", "Databricks"],
 ) as dag:
 
-    files = download_from_minio()
-    upload_to_databricks(files)
+    extract_files = download_from_minio()
+
+    upload_files = upload_to_databricks(extract_files)
+
+    manifest = create_manifests(upload_files)
+
+    load_to_bronze = DatabricksRunNowOperator(
+        task_id="load_to_bronze",
+        job_id=DATABRICKS_JOB_ID,
+    )
+
+    checkpoint = update_checkpoint(extract_files)
+
+    extract_files >> upload_files >> manifest >> load_to_bronze >> checkpoint

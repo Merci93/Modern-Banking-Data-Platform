@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.decorators import task
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
+from airflow.sensors.time_delta import TimeDeltaSensor
 
 from dims import dim_accounts_data_generator, dim_customer_data_generator
 from facts import fact_transactions_data_generator
@@ -78,6 +79,11 @@ with DAG(
     check_transaction_categories_table = check_tables(table_name="dim_transaction_categories")
     check_merchants_table = check_tables(table_name="dim_merchants")
 
+    delay_trigger = TimeDeltaSensor(
+        task_id="delay_next_dag_trigger",
+        delta=timedelta(seconds=90)
+    )
+
     trigger_minio_to_databricks = TriggerDagRunOperator(
         task_id="trigger_minio_to_databricks",
         trigger_dag_id="minio_to_databricks_volume",
@@ -88,4 +94,4 @@ with DAG(
         currency(check_currency_table),
         category(check_transaction_categories_table),
         merchant(check_merchants_table),
-    ] >> generate_customer_data() >> generate_account_data() >> generate_transaction_data() >> trigger_minio_to_databricks
+    ] >> generate_customer_data() >> generate_account_data() >> generate_transaction_data() >> delay_trigger >> trigger_minio_to_databricks

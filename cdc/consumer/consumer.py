@@ -39,7 +39,7 @@ def create_consumer() -> KafkaConsumer:
         bootstrap_servers=os.getenv("KAFKA_BOOTSTRAP_SERVER"),
         group_id=os.getenv("KAFKA_GROUP"),
         auto_offset_reset="earliest",
-        enable_auto_commit=True,
+        enable_auto_commit=False,
         value_deserializer=lambda x: json.loads(x.decode("utf-8")),
         max_poll_records=500,
     )
@@ -114,12 +114,15 @@ def wait_for_topics(consumer: KafkaConsumer) -> None:
         time.sleep(5)
 
 
-def flush_buffers(
-    buffers: dict,
-    s3_client,
-    bucket_name: str,
-) -> None:
-    """Flush remaining buffered records to MinIO."""
+def flush_buffers(buffers: dict, s3_client, bucket_name: str) -> bool:
+    """
+    Flush buffered records to MinIO.
+
+    Returns:
+        True if at least one batch was written.
+    """
+
+    wrote_data = False
 
     for topic, records in buffers.items():
 
@@ -134,6 +137,9 @@ def flush_buffers(
         )
 
         buffers[topic].clear()
+        wrote_data = True
+
+    return wrote_data
 
 
 def write_to_minio(
@@ -178,48 +184,39 @@ def initialize_buffers() -> dict:
     return {topic: [] for topic in TOPICS}
 
 
-def process_message(
-    message,
-    buffers: dict,
-    s3_client,
-    bucket_name: str,
-) -> None:
+def process_message(message, buffers: dict) -> None:
     """Process a single Kafka message."""
     topic = message.topic
 
     if topic not in buffers:
-        logger.warning("Ignoring unknow topic %s", topic)
+        logger.warning("Ignoring unknown topic %s", topic)
         return
 
-    event = message.value
-
-    payload = event.get("payload")
+    payload = message.value.get("payload")
 
     if not payload:
         return
 
     operation = payload.get("op")
 
-    # Ignore delete operations
     if operation == "d":
+        data = payload.get("before")
+    else:
+        data = payload.get("after")
+
+    if not data:
         return
 
-    record = payload.get("after")
+    source = message.value.get("source", {})
 
-    if not record:
-        return
+    record = {
+        **data,
+        "_operation": operation,
+        "_source_lsn": source.get("lsn"),
+        "_event_timestamp": message.value.get("ts_ms"),
+    }
 
     buffers[topic].append(record)
-
-    if len(buffers[topic]) >= BATCH_SIZE:
-        write_to_minio(
-            s3_client=s3_client,
-            bucket_name=bucket_name,
-            table_name=topic.split(".")[-1],
-            records=buffers[topic],
-        )
-
-        buffers[topic].clear()
 
 
 def consume_messages() -> None:
@@ -248,9 +245,7 @@ def consume_messages() -> None:
 
     while True:
 
-        messages = consumer.poll(
-            timeout_ms=1000
-        )
+        messages = consumer.poll(timeout_ms=1000)
 
         if messages:
 
@@ -261,20 +256,31 @@ def consume_messages() -> None:
                     process_message(
                         message=message,
                         buffers=buffers,
-                        s3_client=s3_client,
-                        bucket_name=bucket_name,
                     )
 
-        # Time-based flush
+        # Flush if any topic reached batch size
+        should_flush = any(
+            len(records) >= BATCH_SIZE
+            for records in buffers.values()
+        )
+
+        # Or flush because of time interval
         if time.time() - last_flush_time >= FLUSH_INTERVAL:
+            should_flush = True
 
-            logger.info("Flush interval reached. Uploading buffered records ...")
+        if should_flush:
 
-            flush_buffers(
+            logger.info("Flushing buffered records...")
+
+            wrote_data = flush_buffers(
                 buffers=buffers,
                 s3_client=s3_client,
                 bucket_name=bucket_name,
             )
+
+            if wrote_data:
+                consumer.commit()
+                logger.info("Kafka offsets committed.")
 
             last_flush_time = time.time()
 

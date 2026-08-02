@@ -49,7 +49,7 @@ DATABRICKS_JOB_ID = os.getenv("JOB_ID")
 
 # DAG default arguments
 DEFAULT_ARGS = {
-    "owner": "airflow",
+    "owner": "MinIO Databricks",
     "retries": 2,
     "retry_delay": timedelta(seconds=15),
 }
@@ -333,7 +333,6 @@ with DAG(
     dag_id="minio_to_databricks_volume",
     description="Downloads files from MinIO and uploads into Databricks volume.",
     default_args=DEFAULT_ARGS,
-    # schedule="*/5 * * * *",
     schedule=None,
     start_date=datetime(2026, 7, 1),
     catchup=False,

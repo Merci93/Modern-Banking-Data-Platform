@@ -1,7 +1,10 @@
 """A dag to seed the database with fake data for testing and development."""
+from datetime import datetime, timedelta
+
 from airflow import DAG
 from airflow.decorators import task
-from datetime import datetime, timedelta
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
+from airflow.sensors.time_delta import TimeDeltaSensor
 
 from dims import dim_accounts_data_generator, dim_customer_data_generator
 from facts import fact_transactions_data_generator
@@ -16,7 +19,7 @@ from seeds import (
 DEFAULT_ARGS = {
     "owner": "Database Seeder",
     "retries": 2,
-    "retry_delay": timedelta(minutes=1),
+    "retry_delay": timedelta(seconds=30),
 }
 
 
@@ -72,8 +75,23 @@ with DAG(
     start_date=datetime(2026, 1, 1),
 ) as dag:
 
+    check_currency_table = check_tables(table_name="dim_currency")
+    check_transaction_categories_table = check_tables(table_name="dim_transaction_categories")
+    check_merchants_table = check_tables(table_name="dim_merchants")
+
+    delay_trigger = TimeDeltaSensor(
+        task_id="delay_next_dag_trigger",
+        delta=timedelta(seconds=90)
+    )
+
+    trigger_minio_to_databricks = TriggerDagRunOperator(
+        task_id="trigger_minio_to_databricks",
+        trigger_dag_id="minio_to_databricks_volume",
+        wait_for_completion=True,
+    )
+
     [
-        currency(check_tables(table_name="dim_currency")),
-        category(check_tables(table_name="dim_transaction_categories")),
-        merchant(check_tables(table_name="dim_merchants")),
-    ] >> generate_customer_data() >> generate_account_data() >> generate_transaction_data()
+        currency(check_currency_table),
+        category(check_transaction_categories_table),
+        merchant(check_merchants_table),
+    ] >> generate_customer_data() >> generate_account_data() >> generate_transaction_data() >> delay_trigger >> trigger_minio_to_databricks

@@ -34,7 +34,7 @@ CONNECTOR_CONFIG = {
             "public.dim_merchants,"
             "public.dim_transaction_categories",
         "slot.name": "banking_slot",
-        "snapshot.mode": "initial",
+        "snapshot.mode": "when_needed",
         "publication.autocreate.mode": "filtered",
         "tombstones.on.delete": "false",
         "decimal.handling.mode": "double"  # This keeps all decimal format as double
@@ -97,22 +97,6 @@ def create_connector() -> None:
     logger.info("Debezium connector created successfully.")
 
 
-def update_connector() -> None:
-    """
-    Update existing connector configuration.
-    """
-    response = requests.put(
-        f"{DEBEZIUM_URL}/connectors/{CONNECTOR_CONFIG['name']}/config",
-        headers={"Content-Type": "application/json"},
-        data=json.dumps(CONNECTOR_CONFIG),
-        timeout=30
-    )
-
-    response.raise_for_status()
-
-    logger.info("Debezium connector updated successfully.")
-
-
 def establish_connection() -> None:
     """
     Create or update Debezium connector.
@@ -121,11 +105,11 @@ def establish_connection() -> None:
         wait_for_debezium()
 
         if connector_exists():
-            logger.info("Connector already exists. Updating configuration...")
-            update_connector()
-        else:
-            logger.info("Connector not found. Creating connector...")
-            create_connector()
+            logger.info("Connector already exists. Proceeding with existing connector.")
+            return
+
+        logger.info("Connector not found. Creating connector...")
+        create_connector()
 
     except Exception as exc:
         logger.exception("Failed to configure Debezium connector: %s", exc)

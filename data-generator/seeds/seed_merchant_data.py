@@ -11,7 +11,7 @@ from utils.send_data_to_database_table import add_data_to_database_table
 logger = get_logger(__name__)
 
 TABLE_NAME = "dim_merchants"
-COLUMNS = ("merchantName", "merchantCategory")
+COLUMNS = ("merchantname", "merchantcategory")
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 MERCHANT_FILE_PATH = BASE_DIR / "data" / "merchants.json"

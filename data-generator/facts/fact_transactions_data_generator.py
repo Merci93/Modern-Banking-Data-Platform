@@ -19,9 +19,9 @@ FAKER = Faker()
 
 TABLE_NAME = "fact_transactions"
 COLUMNS = (
-    "accountId", "customerId", "merchantId", "transactionType", "amount",
-    "currencyCode", "categoryId", "transactionTimestamp", "channel",
-    "status", "referenceId",
+    "accountid", "customerid", "merchantid", "transactiontype", "amount",
+    "currencycode", "categoryid", "transactiontimestamp", "channel",
+    "status", "referenceid",
 )
 NUM_OF_TRANSACTIONS = 15
 MIN_TXN_AMOUNT = Decimal("45.00")
@@ -63,7 +63,7 @@ def fetch_lookup_ids():
         if not merchant_ids:
             raise ValueError("Merchant table is empty.")
 
-        cur.execute("SELECT id, customerId FROM dim_accounts")
+        cur.execute("SELECT id, customerid FROM dim_accounts")
         accounts = cur.fetchall()
 
         if not accounts:

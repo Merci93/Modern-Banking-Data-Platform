@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS dim_accounts (
   CONSTRAINT fk_customer_accounts
     FOREIGN KEY (customerId)
     REFERENCES dim_customers(id)
-    ON DELETE CASCADE,
+    ON DELETE RESTRICT,
 
   CONSTRAINT fk_customer_currency_coode
     FOREIGN KEY (currencyCode)

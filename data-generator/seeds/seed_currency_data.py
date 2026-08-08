@@ -12,7 +12,7 @@ logger = get_logger(__name__)
 
 
 TABLE_NAME = "dim_currency"
-COLUMNS = ("currency_code", "currency_name")
+COLUMNS = ("currencyCode", "currencyName")
 BASE_DIR = Path(__file__).resolve().parent.parent
 CURRENCY_FILE_PATH = BASE_DIR / "data" / "currency.json"
 

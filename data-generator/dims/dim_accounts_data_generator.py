@@ -18,7 +18,7 @@ logger = log_handler.get_logger(__name__)
 FAKER = Faker()
 
 TABLE_NAME = "dim_accounts"
-COLUMNS = ("customer_id", "account_type", "account_number", "currency_code", "status",)
+COLUMNS = ("customerId", "accountType", "accountNumber", "currencyCode", "status",)
 ACCOUNTS_PER_CUSTOMER = 3
 ACCOUNT_TYPES = ("savings", "current")
 ACCOUNT_STATUS = "active"

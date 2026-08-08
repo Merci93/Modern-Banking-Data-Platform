@@ -63,7 +63,7 @@ def fetch_lookup_ids():
         if not merchant_ids:
             raise ValueError("Merchant table is empty.")
 
-        cur.execute("SELECT id, customer_id FROM dim_accounts")
+        cur.execute("SELECT id, customerId FROM dim_accounts")
         accounts = cur.fetchall()
 
         if not accounts:

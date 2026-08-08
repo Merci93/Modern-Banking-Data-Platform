@@ -13,7 +13,7 @@ FAKER = Faker()
 
 TABLE_NAME = "dim_customers"
 COLUMNS = (
-    "first_name", "middle_name", "last_name",
+    "firstName", "middleName", "lastName",
     "phone", "email", "country", "address",
 )
 NUM_OF_CUSTOMERS = 10
